@@ -1,0 +1,1 @@
+﻿alter table users add DeviceId nvarchar(1000);

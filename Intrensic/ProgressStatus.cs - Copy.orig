@@ -1,0 +1,387 @@
+﻿using System.Threading;
+using CodeITBL;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using log4net;
+
+namespace Intrensic
+{
+    public partial class frmProgressStatus : Form
+    {
+
+        private readonly ILog _logger = LogManager.GetLogger(typeof(frmProgressStatus));
+
+
+        Dictionary<int, IFileTransfer> taskList = new Dictionary<int, IFileTransfer>();
+
+        Dictionary<int, TaskStatus> taskStatusList = new Dictionary<int, TaskStatus>();
+
+        int totalItemRows = 0;
+
+        private CodeITDL.User currentUser;
+
+
+        public CodeITDL.User getOwnerOfUploadProcess
+        {
+            get { return currentUser; }
+        }
+
+        public bool hasUploadCompleted
+        {
+            get { return taskStatusList.Count == taskList.Count; }
+        }
+
+        public frmProgressStatus()
+        {
+            InitializeComponent();
+            DrawHeader();
+            DrawFooter();
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            PlaceLowerRight();
+            base.OnLoad(e);
+        }
+
+
+        public void BeginUploadProcess(List<String> filePaths)
+        {
+<<<<<<< HEAD
+=======
+            currentUser = Context.getCurrentUser;
+            var uiScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+
+>>>>>>> 90bd97559f493854334edd10629e9952036547ed
+            if (filePaths == null)
+                return;
+            if (filePaths.Count == 0)
+                return;
+
+            togleDeleteAllButton(false);
+
+            var tasks = new List<Task>();
+
+            foreach (string file in filePaths)
+            {
+                string name = Guid.NewGuid().ToString().Replace("-", string.Empty);
+
+                var fileTransfer = FileTransferFactory.GetFileTransfer(name, file);
+                fileTransfer.StateChanged += fileTransfer_StateChanged;
+
+                var fileProgress = new Progress<TaskProgressReport>();
+                fileProgress.ProgressChanged += ProgressChanged;
+
+                Task task = fileTransfer.CopyFile(fileProgress);
+
+                taskList.Add(task.Id, fileTransfer);
+                tasks.Add(task);
+
+                AddItem(fileTransfer.Name(), fileTransfer.SourceFilePath(), task, totalItemRows);
+                totalItemRows += 1;
+
+                task.ContinueWith(UploadDone);
+            }
+
+            foreach (var task in tasks)
+            {
+                task.Start();
+            }
+        }
+
+        void fileTransfer_StateChanged(object sender, StateChangeEventArg arg)
+        {
+            String status = "";
+
+            String name = ((IFileTransfer)sender).Name();
+            switch (arg.FileTransferState)
+            {
+                case FileTransferState.Inital:
+                    status = "Starting";
+                    break;
+                case FileTransferState.CalculatingChecksum:
+                    status = "Calculating Checksum";
+                    break;
+                case FileTransferState.InProgress:
+                    status = "In Progress";
+                    break;
+                case FileTransferState.Verifying:
+                    status = "Verifying";
+                    break;
+                case FileTransferState.ErrorVerification:
+                    status = "Error";
+                    changeProgress(name, 100);
+                    //updateRpogressColor(name, Color.Firebrick);
+                    break;
+                case FileTransferState.Done:
+                    changeProgress(name, 100);
+                    //updateRpogressColor(name, Color.ForestGreen);
+                    status = "Completed";
+                    break;
+                default:
+                    status = "";
+                    break;
+            }
+
+            changeLabelStatus(name, status);
+        }
+
+        void UploadDone(Task task)
+        {
+
+            updateButtonText(task);
+
+            IFileTransfer fileTransfer = null;
+            taskList.TryGetValue(task.Id, out fileTransfer);
+
+            if (fileTransfer != null)
+            {
+                String name = fileTransfer.Name();
+                if (task.IsFaulted)
+                {
+                    changeProgress(name, 100);
+                    //updateRpogressColor(name, Color.Firebrick);
+                    taskStatusList.Add(task.Id, task.Status);
+                }
+                if (task.IsCanceled)
+                {
+                    hideButtonOnCancel(task);
+                    changeProgress(name, 100);
+                    //updateRpogressColor(name, Color.CornflowerBlue);
+                    taskStatusList.Add(task.Id, task.Status);
+
+                }
+                if (task.IsCompleted)
+                {
+                    if (task.AsyncState is CancellationToken &&
+                        ((CancellationToken) task.AsyncState).IsCancellationRequested)
+                    {
+
+                        hideButtonOnCancel(task);
+                        changeProgress(name, 100);
+                        //updateRpogressColor(name, Color.CornflowerBlue);
+                        taskStatusList.Add(task.Id, task.Status);
+                    }
+                    else
+                    {
+
+                        changeProgress(name, 100);
+                        //updateRpogressColor(name, Color.ForestGreen);
+                        taskStatusList.Add(task.Id, task.Status);
+                    }
+                }
+            }
+
+            //this means that all tasks have completed
+            if (taskStatusList.Count == taskList.Count)
+            {
+                togleDeleteAllButton(true);
+            }
+        }
+
+        void ProgressChanged(object sender, TaskProgressReport report)
+        {
+            changeProgress(report.Name, report.PercentComplete);
+        }
+
+        private void changeProgress(string name, int value)
+        {
+            var items = tlpItems.Controls;
+            var control = items.Cast<Control>().FirstOrDefault(x => x.Tag == name && x.GetType() == typeof(ProgressBarWithPercentage));
+            if (control != null)
+            {
+                if (((ProgressBarWithPercentage)control).InvokeRequired)
+                {
+
+                    ((ProgressBarWithPercentage)control).Invoke(new MethodInvoker(delegate
+                    {
+                        if (((ProgressBarWithPercentage)control).Value != value)
+                        {
+                            ((ProgressBarWithPercentage)control).Value = value;
+                        }
+                    }));
+
+                }
+                else
+                {
+                    if (((ProgressBarWithPercentage)control).Value != value)
+                    {
+                        ((ProgressBarWithPercentage)control).Value = value;
+                    }
+                }
+            }
+            //changeLabelStatus(name, "Uploading");
+        }
+
+        private void changeLabelStatus(string name, string status)
+        {
+            var items = tlpItems.Controls;
+            var control = items.Cast<Control>().FirstOrDefault(x => x.Tag == name && x.GetType() == typeof(Label));
+            if (control != null)
+            {
+                if (((Label)control).InvokeRequired)
+                    ((Label)control).Invoke(new Action(() => { ((Label)control).Text = status; }));
+                else
+                    ((Label)control).Text = status;
+
+            }
+        }
+
+        private void updateButtonText(Task task)
+        {
+            var items = tlpItems.Controls;
+            var control = items.Cast<Control>().FirstOrDefault(x => x.Tag == task && x.GetType() == typeof(Button));
+            if (control != null)
+            {
+                if (((Button)control).InvokeRequired)
+                    ((Button)control).Invoke(new Action(() => { ((Button)control).Text = (task.Status == TaskStatus.RanToCompletion ? "Delete" : "Cancel"); }));
+                else
+                    ((Button)control).Text = (task.Status == TaskStatus.RanToCompletion ? "Delete" : "Cancel");
+            }
+        }
+
+        private void togleDeleteAllButton(bool show)
+        {
+            var items = tlpFooter.Controls;
+            var control = items.Cast<Control>().FirstOrDefault(x => x.Tag == "DeleteAll" && x.GetType() == typeof(Button));
+            if (control != null)
+            {
+                if (((Button)control).InvokeRequired)
+                    ((Button)control).Invoke(new Action(() => { ((Button)control).Visible = show; }));
+                else
+                    ((Button)control).Visible = show;
+            }
+        }
+
+        private void hideButtonOnCancel(Task task)
+        {
+            var items = tlpItems.Controls;
+            var control = items.Cast<Control>().FirstOrDefault(x => x.Tag == task && x.GetType() == typeof(Button));
+            if (control != null)
+            {
+                if (((Button)control).InvokeRequired)
+                    ((Button)control).Invoke(new Action(() => { ((Button)control).Visible = false; }));
+                else
+                    ((Button)control).Visible = false;
+            }
+        }
+
+        private void PlaceLowerRight()
+        {
+            Screen rightmost = Screen.AllScreens[0];
+            foreach (Screen screen in Screen.AllScreens)
+            {
+                if (screen.WorkingArea.Right > rightmost.WorkingArea.Right)
+                    rightmost = screen;
+            }
+
+            this.Left = rightmost.WorkingArea.Right - this.Width;
+            this.Top = rightmost.WorkingArea.Bottom - this.Height;
+        }
+
+        private void DrawHeader()
+        {
+            tlpHeader.Controls.Add(new Label() { Text = "File Name" }, 0, 0);
+            tlpHeader.Controls.Add(new Label() { Text = "Progress" }, 1, 0);
+            tlpHeader.Controls.Add(new Label() { Text = "Status" }, 2, 0);
+            tlpHeader.Controls.Add(new Label() { Text = "Action" }, 3, 0);
+            tlpHeader.RowCount = 1;
+        }
+
+        private void DrawFooter()
+        {
+            Button btnDeleteAll = new Button();
+            btnDeleteAll.Text = "Delete All";
+            btnDeleteAll.Click += btnDeleteAll_Click;
+            btnDeleteAll.Tag = "DeleteAll";
+            btnDeleteAll.Visible = false;
+
+            tlpFooter.Controls.Add(new Label() { Text = String.Empty }, 0, 0);
+            tlpFooter.Controls.Add(new Label() { Text = String.Empty }, 1, 0);
+            tlpFooter.Controls.Add(new Label() { Text = String.Empty }, 2, 0);
+            tlpFooter.Controls.Add(btnDeleteAll, 3, 0);
+            tlpFooter.RowCount = 1;
+
+        }
+
+        void btnDeleteAll_Click(object sender, EventArgs e)
+        {
+            foreach (KeyValuePair<int, IFileTransfer> item in taskList)
+            {
+                if (System.IO.File.Exists(item.Value.SourceFilePath()))
+                    System.IO.File.Delete(item.Value.SourceFilePath());
+            }
+
+            taskList = new Dictionary<int, IFileTransfer>();
+            togleDeleteAllButton(false);
+            tlpItems.Controls.Clear();
+            this.Close();
+        }
+
+
+
+        private void AddItem(string name, string fileName, Task task, int rowNumber)
+        {
+            if (rowNumber == 0)
+                tlpItems.Controls.Clear();
+
+            tlpItems.Controls.Add(new Label() { Text = fileName }, 0, rowNumber);
+
+            var pbar = new ProgressBarWithPercentage
+            {
+                Maximum = 100,
+                Width = 200,
+                Height = 20,
+                Tag = name,
+                Value = 0,
+                BackColor = Color.ForestGreen,
+            };
+            tlpItems.Controls.Add(pbar, 1, rowNumber);
+
+            tlpItems.Controls.Add(new Label() { Text = task.Status.ToString(), Tag = name }, 2, rowNumber);
+            var btnCancel = new Button
+            {
+                Height = 20,
+                Text = task.Status == TaskStatus.RanToCompletion ? "Delete" : "Cancel",
+                Tag = task
+            };
+            btnCancel.Click += btnCancel_Click;
+
+            tlpItems.Controls.Add(btnCancel, 3, rowNumber);
+        }
+
+        void btnCancel_Click(object sender, EventArgs e)
+        {
+            int taskid = ((Task)((Button)sender).Tag).Id;
+            if (((Button)sender).Text == "Cancel")
+            {
+
+                IFileTransfer fileTransfer = null;
+                taskList.TryGetValue(taskid, out fileTransfer);
+
+                if (fileTransfer != null)
+                    fileTransfer.Cancel();
+            }
+            else if (((Button)sender).Text == "Delete")
+            {
+                IFileTransfer fileTransfer = null;
+                taskList.TryGetValue(taskid, out fileTransfer);
+                if (fileTransfer != null)
+                {
+                    if (System.IO.File.Exists(fileTransfer.SourceFilePath()))
+                        System.IO.File.Delete(fileTransfer.SourceFilePath());
+                    int rowId = tlpItems.GetRow((Button)sender);
+                    changeLabelStatus(fileTransfer.Name(), "Deleted");
+                    ((Button)sender).Visible = false;
+                }
+            }
+        }
+    }
+}

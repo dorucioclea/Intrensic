@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="796cf31f16464a07a7753e4032b07683" Name="Diagram1">
+        <EntityTypeShape EntityType="IntrensicModel.File" Width="1.5" PointX="2.75" PointY="3.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="IntrensicModel.Setting" Width="1.5" PointX="4.75" PointY="3.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="IntrensicModel.User" Width="1.5" PointX="6.75" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="IntrensicModel.UserPicture" Width="1.5" PointX="5.375" PointY="6.75" />
+        <EntityTypeShape EntityType="IntrensicModel.AuditLog" Width="1.5" PointX="7.75" PointY="5.75" />
+        <EntityTypeShape EntityType="IntrensicModel.Customer" Width="1.5" PointX="0.75" PointY="0.75" />
+        <EntityTypeShape EntityType="IntrensicModel.FileUploadStatusLog" Width="1.5" PointX="2.75" PointY="0.75" />
+        <EntityTypeShape EntityType="IntrensicModel.UserLoginAudit" Width="1.5" PointX="0.75" PointY="8.75" />
+        <EntityTypeShape EntityType="IntrensicModel.License" Width="1.5" PointX="9.375" PointY="0.75" />
+        <EntityTypeShape EntityType="IntrensicModel.UserLicense" Width="1.5" PointX="9.375" PointY="2.875" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

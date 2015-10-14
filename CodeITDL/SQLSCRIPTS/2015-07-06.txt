@@ -1,0 +1,1 @@
+﻿alter table auditlog add CustomerId nvarchar(500) not null default ('');
